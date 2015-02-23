@@ -65,7 +65,7 @@ class Flight():
             
 
             
-    def _is_flying(self, start_i, stop_i, wba_thres=0.2, flying_time_thresh=0.95):  #fix this critera
+    def _is_flying(self, start_i, stop_i, wba_thres=0.5, flying_time_thresh=0.95):  #fix this critera
         #check that animal is flying 
         l_nonzero_samples = np.where(self.lwa_v[start_i:stop_i] > wba_thres)[0]
         r_nonzero_samples = np.where(self.rwa_v[start_i:stop_i] > wba_thres)[0]
@@ -188,12 +188,12 @@ class Visual_Feature_Flight(Flight):
         
         ao_diff = np.diff(self.ao)
         
-        tr_start = self.samples[np.where(ao_diff > .5)]
+        tr_start = self.samples[np.where(ao_diff > 2)]
         start_diff = np.diff(tr_start)
         redundant_starts = tr_start[np.where(start_diff < 1000)]
         clean_tr_starts = np.setdiff1d(tr_start,redundant_starts)+1
         
-        tr_stop = self.samples[np.where(ao_diff < -.5)]
+        tr_stop = self.samples[np.where(ao_diff < -2)]
         stop_diff = np.diff(tr_stop)
         redundant_stops = tr_stop[np.where(stop_diff < 1000)] 
         #now check that the y value is > -9 
@@ -220,27 +220,13 @@ class Visual_Feature_Flight(Flight):
             y_stop = np.ones(len(clean_tr_stops))
             plt.plot(clean_tr_starts,y_start*7,'go')
             plt.plot(clean_tr_stops,y_stop*7,'ro')
+            plt.plot(fly.xstim,color=black)
+            plt.plot(np.diff(fly.ao),color=magenta)
         
-        #detect when the y stim stepped
-        ystim_diff = np.diff(self.ystim)
-        y_step = self.samples[np.where(ystim_diff > .03)]
-
-        ##now discriminate first stim on for a trial, not looming steps
-        #pre_loom_stim = np.zeros(n_trs)
-        #for tr_i in range(n_trs):
-        #    earliest_t = clean_tr_starts[tr_i] - 2000  #look within a window before looming
-        #    latest_t = clean_tr_starts[tr_i] - 300 
-        #    win1 = np.where(y_step > earliest_t)[0]
-        #    win2 = np.where(y_step < latest_t)[0]
-        #    candidate_stim_starts = y_step[np.intersect1d(win1,win2)]
-        #    pre_loom_stim[tr_i] = candidate_stim_starts[0]
-        
-        #next encode post loom stim on, iti_dur as the median
         
         self.n_trs = n_trs 
         self.tr_starts = clean_tr_starts  #index values of starting and stopping
         self.tr_stops = clean_tr_stops
-        #self.pre_loom_stim_ons = pre_loom_stim
         
         #here remove all trials in which the fly is not flying. 
         self.remove_non_flight_trs()
@@ -248,122 +234,20 @@ class Visual_Feature_Flight(Flight):
     def parse_stim_type(self):
         #calculate the stimulus type
        
-        if self.protocol == '1feb2015':
-            stim_types_labels =['left - 22 l/v, 50 max d, 3 min contrast',\
-                                'left - 22 l/v, 50 max d, 4 min contrast',\
-                                'left - 22 l/v, 50 max d, 5 min contrast',\
-                                'left - 22 l/v, 90 max d, 3 min contrast',\
-                                'left - 22 l/v, 90 max d, 4 min contrast',\
-                                'left - 22 l/v, 90 max d, 5 min contrast',\
-                                'left - 44 l/v, 50 max d, 3 min contrast',\
-                                'left - 44 l/v, 50 max d, 4 min contrast',\
-                                'left - 44 l/v, 50 max d, 5 min contrast',\
-                                'left - 44 l/v, 90 max d, 3 min contrast',\
-                                'left - 44 l/v, 90 max d, 4 min contrast',\
-                                'left - 44 l/v, 90 max d, 5 min contrast',\
-                                'left - 88 l/v, 50 max d, 3 min contrast',\
-                                'left - 88 l/v, 50 max d, 4 min contrast',\
-                                'left - 88 l/v, 50 max d, 5 min contrast',\
-                                'left - 88 l/v, 90 max d, 3 min contrast',\
-                                'left - 88 l/v, 90 max d, 4 min contrast',\
-                                'left - 88 l/v, 90 max d, 5 min contrast',\
-                                
-                                'center - 22 l/v, 50 max d, 3 min contrast',\
-                                'center - 22 l/v, 50 max d, 4 min contrast',\
-                                'center - 22 l/v, 50 max d, 5 min contrast',\
-                                'center - 22 l/v, 90 max d, 3 min contrast',\
-                                'center - 22 l/v, 90 max d, 4 min contrast',\
-                                'center - 22 l/v, 90 max d, 5 min contrast',\
-                                'center - 44 l/v, 50 max d, 3 min contrast',\
-                                'center - 44 l/v, 50 max d, 4 min contrast',\
-                                'center - 44 l/v, 50 max d, 5 min contrast',\
-                                'center - 44 l/v, 90 max d, 3 min contrast',\
-                                'center - 44 l/v, 90 max d, 4 min contrast',\
-                                'center - 44 l/v, 90 max d, 5 min contrast',\
-                                'center - 88 l/v, 50 max d, 3 min contrast',\
-                                'center - 88 l/v, 50 max d, 4 min contrast',\
-                                'center - 88 l/v, 50 max d, 5 min contrast',\
-                                'center - 88 l/v, 90 max d, 3 min contrast',\
-                                'center - 88 l/v, 90 max d, 4 min contrast',\
-                                'center - 88 l/v, 90 max d, 5 min contrast',\
-                                
-                                'right - 22 l/v, 50 max d, 3 min contrast',\
-                                'right - 22 l/v, 50 max d, 4 min contrast',\
-                                'right - 22 l/v, 50 max d, 5 min contrast',\
-                                'right - 22 l/v, 90 max d, 3 min contrast',\
-                                'right - 22 l/v, 90 max d, 4 min contrast',\
-                                'right - 22 l/v, 90 max d, 5 min contrast',\
-                                'right - 44 l/v, 50 max d, 3 min contrast',\
-                                'right - 44 l/v, 50 max d, 4 min contrast',\
-                                'right - 44 l/v, 50 max d, 5 min contrast',\
-                                'right - 44 l/v, 90 max d, 3 min contrast',\
-                                'right - 44 l/v, 90 max d, 4 min contrast',\
-                                'right - 44 l/v, 90 max d, 5 min contrast',\
-                                'right - 88 l/v, 50 max d, 3 min contrast',\
-                                'right - 88 l/v, 50 max d, 4 min contrast',\
-                                'right - 88 l/v, 50 max d, 5 min contrast',\
-                                'right - 88 l/v, 90 max d, 3 min contrast',\
-                                'right - 88 l/v, 90 max d, 4 min contrast',\
-                                'right - 88 l/v, 90 max d, 5 min contrast']
-                                
-        else:
-            stim_types_labels =['left - 14 l/v, 33 max d, 2 min contrast',\
-                                'left - 14 l/v, 33 max d, 3 min contrast',\
-                                'left - 14 l/v, 50 max d, 2 min contrast',\
-                                'left - 14 l/v, 50 max d, 3 min contrast',\
-                                'left - 14 l/v, 90 max d, 2 min contrast',\
-                                'left - 14 l/v, 90 max d, 3 min contrast',\
-                                'left - 22 l/v, 33 max d, 2 min contrast',\
-                                'left - 22 l/v, 33 max d, 3 min contrast',\
-                                'left - 22 l/v, 50 max d, 2 min contrast',\
-                                'left - 22 l/v, 50 max d, 3 min contrast',\
-                                'left - 22 l/v, 90 max d, 2 min contrast',\
-                                'left - 22 l/v, 90 max d, 3 min contrast',\
-                                'left - 44 l/v, 33 max d, 2 min contrast',\
-                                'left - 44 l/v, 33 max d, 3 min contrast',\
-                                'left - 44 l/v, 50 max d, 2 min contrast',\
-                                'left - 44 l/v, 50 max d, 3 min contrast',\
-                                'left - 44 l/v, 90 max d, 2 min contrast',\
-                                'left - 44 l/v, 90 max d, 3 min contrast',\
-                            
-                                'center - 14 l/v, 33 max d, 2 min contrast',\
-                                'center - 14 l/v, 33 max d, 3 min contrast',\
-                                'center - 14 l/v, 50 max d, 2 min contrast',\
-                                'center - 14 l/v, 50 max d, 3 min contrast',\
-                                'center - 14 l/v, 90 max d, 2 min contrast',\
-                                'center - 14 l/v, 90 max d, 3 min contrast',\
-                                'center - 22 l/v, 33 max d, 2 min contrast',\
-                                'center - 22 l/v, 33 max d, 3 min contrast',\
-                                'center - 22 l/v, 50 max d, 2 min contrast',\
-                                'center - 22 l/v, 50 max d, 3 min contrast',\
-                                'center - 22 l/v, 90 max d, 2 min contrast',\
-                                'center - 22 l/v, 90 max d, 3 min contrast',\
-                                'center - 44 l/v, 33 max d, 2 min contrast',\
-                                'center - 44 l/v, 33 max d, 3 min contrast',\
-                                'center - 44 l/v, 50 max d, 2 min contrast',\
-                                'center - 44 l/v, 50 max d, 3 min contrast',\
-                                'center - 44 l/v, 90 max d, 2 min contrast',\
-                                'center - 44 l/v, 90 max d, 3 min contrast',\
-                            
-                                'right - 14 l/v, 33 max d, 2 min contrast',\
-                                'right - 14 l/v, 33 max d, 3 min contrast',\
-                                'right - 14 l/v, 50 max d, 2 min contrast',\
-                                'right - 14 l/v, 50 max d, 3 min contrast',\
-                                'right - 14 l/v, 90 max d, 2 min contrast',\
-                                'right - 14 l/v, 90 max d, 3 min contrast',\
-                                'right - 22 l/v, 33 max d, 2 min contrast',\
-                                'right - 22 l/v, 33 max d, 3 min contrast',\
-                                'right - 22 l/v, 50 max d, 2 min contrast',\
-                                'right - 22 l/v, 50 max d, 3 min contrast',\
-                                'right - 22 l/v, 90 max d, 2 min contrast',\
-                                'right - 22 l/v, 90 max d, 3 min contrast',\
-                                'right - 44 l/v, 33 max d, 2 min contrast',\
-                                'right - 44 l/v, 33 max d, 3 min contrast',\
-                                'right - 44 l/v, 50 max d, 2 min contrast',\
-                                'right - 44 l/v, 50 max d, 3 min contrast',\
-                                'right - 44 l/v, 90 max d, 2 min contrast',\
-                                'right - 44 l/v, 90 max d, 3 min contrast']
-        
+        stim_types_labels =['2x2 full field left',      # 0
+                            '2x2 full field right',     # 1
+                            '2x2 spot left',            # 2
+                            '2x2 spot right',           # 3
+                            '2x2 bar left',             # 4
+                            '2x2 bar right',            # 5
+                            '2x4 full field left',      # 6
+                            '2x4 full field right',     # 7    
+                            '2x4 spot left',            # 8
+                            '2x4 spot right',           # 9
+                            '2x4 bar left',             # 10
+                            '2x4 bar right',            # 11
+                            '8x8 spot right, superfast',# 12
+                            '8x8 spot left, superfast'] # 13   
         
         stim_types = -1*np.ones(self.n_trs,'int')
         
@@ -373,9 +257,9 @@ class Visual_Feature_Flight(Flight):
         for tr in range(self.n_trs): 
             this_start = self.tr_starts[tr]
             this_stop = self.tr_stops[tr]
-            tr_ao_codes[tr] = round(2*np.mean(self.ao[(this_start+20):(this_stop-20)]),1)   
+            tr_ao_codes[tr] = round(np.mean(self.ao[(this_start+20):(this_stop-20)]),1)   
         unique_tr_ao_codes = np.unique(tr_ao_codes) 
-        print 'n stim types = ' + str(np.size(unique_tr_ao_codes))
+        #print 'n stim types = ' + str(np.size(unique_tr_ao_codes))
         
         for tr in range(self.n_trs): 
             tr_ao_code = tr_ao_codes[tr]         
@@ -388,423 +272,149 @@ class Visual_Feature_Flight(Flight):
         self.stim_types_labels = stim_types_labels
            
         
-    def plot_wba_size_x_position(self,title_txt='',l_div_v_list=[0,1,2],contrast_list=[0,1],\
-                        wba_lim=[-60,60],if_save=True,if_x_zoom=True): 
+    def plot_wba_by_cnd(self,title_txt='',wba_lim=[-30,30],if_save=True): 
         
-        # for each l/v stim parameter and min contrast 
-        # plot lmr wba for three rows of max disk size x 
-        # three columns of looming direction
+        sampling_rate = 1000            # in hertz ********* move to fly info
+        s_iti = .5 * sampling_rate      # ********* move to fly info
         
-        sampling_rate = 1000 # in hertz ********* move to fly info
-        s_iti = 2 * sampling_rate #********* move to fly info
-        
-        baseline_win = range(0,int(1*sampling_rate))  #**************** check this.
-                # time relative loom start - s_iti
-                # do not average out the visual onset
-        
-        
-
-        contrast_txt = ['2:7 contrast', '3:7 contrast']
-        l_div_v_txt = ['14 l div v','22 l div v','44 l div v']
-        max_disk_size = ['33 degrees','50 degrees', '90 degrees']
-        tr_types_by_cnd = np.asarray([[0,2,4],[18,20,22],[36,38,40]]) 
-        
-        tr_types_by_cnd = tr_types_by_cnd.transpose()
-        
-        
-        # define saccade window relative loom max time
-        l_div_v_saccade_win = np.array([[-.25,.25],[-.75,.5],[-.5,.5]])*sampling_rate
-        l_div_v_saccade_win = l_div_v_saccade_win.astype(int)               
-                       
-        # define zoomed x axis range relative loom start - s_iti ------------- update this
-        l_div_v_zoom_win = np.array([[s_iti,s_iti+(.6*sampling_rate)],  \
-                                     [s_iti,s_iti+(1*sampling_rate)], \
-                                     [s_iti,s_iti+(1.6*sampling_rate)]],dtype=int)
+        baseline_win = range(0,int(1*sampling_rate)) 
         
         #get all traces and detect saccades ______________________________________________
-        all_fly_traces, all_fly_saccades = self.get_traces_by_stim('this_fly',s_iti,get_saccades=True)
+        all_fly_traces, all_fly_saccades = self.get_traces_by_stim('this_fly',s_iti,get_saccades=False)
                 
         n_rows = 3
-        n_cols = 3
+        n_cols = 6
         
-        #now plot one figure for each looming speed ______________________________________
-        for loom_speed in l_div_v_list: 
-            for contrast in contrast_list: 
-                fig = plt.figure(figsize=(10.7875,7.925))       #(16.5, 9))
-                gs = gridspec.GridSpec(6,n_cols,height_ratios=[1,.15,1,.15,1,.15])
-                gs.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
+        fig = plt.figure(figsize=(17.5,9))       #(16.5, 9))
+        gs = gridspec.GridSpec(6,n_cols,height_ratios=[1,.2,1,.2,1,.2])
+        gs.update(wspace=0.1, hspace=0.1) # set the spacing between axes. 
+        
+        #store all subplots for formatting later           
+        all_wba_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
+        all_stim_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
+        
+        #set order of stimuli to plot
+        cnds_to_plot = np.asarray([[np.nan,0,6,1,7,np.nan],[np.nan,4,10,5,11,np.nan],[13,2,8,3,9,12]])
+    
+        # now loop through the conditions/columns ____________________________________
+        for row in range(n_rows):
+            for col in range(n_cols):
+                cnd = cnds_to_plot[row][col]
                 
-                #store all subplots for formatting later           
-                all_wba_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
-                all_stim_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
+                if not np.isnan(cnd):
+                    # if non nan, convert cnd to int
+                    cnd = int(cnd)
                 
-                cnds_to_plot = tr_types_by_cnd + 6*loom_speed + contrast
-                print '______________________'
-          
-            
-                # get the index of the first max value of the looming ystim
-                # draw a window around here to look for saccades
-            
-                loom_max_i = all_fly_traces.loc[:,('this_fly',slice(None),cnds_to_plot.flatten(),'ystim')].idxmax().median()
-            
-                # get saccade window. defined relative loom_max_i ________________________
-                l_saccade_win = int(loom_max_i + l_div_v_saccade_win[loom_speed][0])
-                r_saccade_win = int(loom_max_i + l_div_v_saccade_win[loom_speed][1])
-                this_turn_win = np.arange(l_saccade_win,r_saccade_win) 
-            
-                max_t = int(loom_max_i + 1*sampling_rate)
-            
-                # now loop through the conditions/columns ____________________________________
-           
-                for row in range(n_rows):
-                    for col in range(n_cols):
-                        cnd = cnds_to_plot[row][col]
-                        #print self.stim_types_labels[cnd]
-            
-                        this_cnd_trs = all_fly_traces.loc[:,('this_fly',slice(None),cnd,'lmr')].columns.get_level_values(1).tolist()
-                        n_cnd_trs = np.size(this_cnd_trs)
-                
-                        # get colormap info ______________________________________________________
-                        cmap = plt.cm.get_cmap('seismic') 
-                        cNorm  = colors.Normalize(0,n_cnd_trs)
-                        scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
-            
-                        # create subplots ________________________________________________________              
-                        if row == 0 and col == 0:
-                            wba_ax  = plt.subplot(gs[0,col]) 
-                            stim_ax = plt.subplot(gs[1,col],sharex=wba_ax)    
-                        else:
-                            wba_ax  = plt.subplot(gs[0+2*row,col], sharex=all_wba_ax[0][0], sharey=all_wba_ax[0][0]) 
-                            stim_ax = plt.subplot(gs[1+2*row,col], sharex=all_stim_ax[0][0], sharey=all_stim_ax[0][0])    
-                    
-                        wba_ax.set_axis_bgcolor('grey') 
-                        # stim_ax.set_axis_bgcolor('black')
-                    
-                        all_wba_ax[row][col] = wba_ax
-                        all_stim_ax[row][col] = stim_ax
-                    
-                        # loop single trials and plot all signals ________________________________
-                        for tr, i in zip(this_cnd_trs,range(n_cnd_trs)):
-                
-                            this_color = scalarMap.to_rgba(i)        
-                     
-                            # plot WBA signal ____________________________________________________           
-                            wba_trace = all_fly_traces.loc[:,('this_fly',tr,cnd,'lmr')]
-                    
-                            # get saccades in this trace
-                            saccade_is = ~np.isnan(all_fly_saccades.loc[:,('this_fly',tr,cnd)])
-                            tr_saccades = np.asarray(all_fly_saccades.loc[saccade_is,('this_fly',tr,cnd)],dtype=int)
-                    
-                            baseline = np.nanmean(wba_trace[baseline_win])
-                            wba_trace = wba_trace - baseline  
-                     
-                            non_nan_i = np.where(~np.isnan(wba_trace))[0]  ##remove nans earlier/check to make sure nans only occur at the end
-                            filtered_wba_trace = butter_lowpass_filter(wba_trace[non_nan_i],30)
-                        
-                            #filtered_wba_trace = butter_lowpass_filter(wba_trace,30)
-                            wba_ax.plot(filtered_wba_trace,color=this_color)
-
-                            # plot all saccade times
-                            #wba_ax.plot(tr_saccades,filtered_wba_trace[tr_saccades],marker='^', \
-                            #            markersize=8.5,linestyle='',color=this_color)
-                    
-                            #now plot stimulus traces ____________________________________________
-                            stim_ax.plot(all_fly_traces.loc[:,('this_fly',tr,cnd,'ystim')],color=this_color)
-                                  
-                                    
-                    #now format all subplots _____________________________________________________  
-           
-                #loop though all columns again, format each row ______________________________
-                for row in range(n_rows):
-                    for col in range(n_cols):      
-                        #all_wba_ax[row][col].fill([l_saccade_win,r_saccade_win,r_saccade_win,l_saccade_win],
-                        #        [wba_lim[1],wba_lim[1],wba_lim[0],wba_lim[0]],'black',alpha=.1)
-                        
-                        # set the ylim for the stimulus and correlation rows ______________________
-                        all_stim_ax[row][col].set_ylim([0,10])
-                         
-                        # label axes, show xlim and ylim __________________________________________
-                 
-                        # remove all time xticklabels
-                        all_wba_ax[row][col].tick_params(labelbottom='off')
-                         
-                        if if_x_zoom:
-                            all_wba_ax[row][col].set_xlim(l_div_v_zoom_win[loom_speed])
-                        else:
-                            all_wba_ax[row][col].set_xlim([0,max_t])
-                 
-                        if col == 0: #label yaxes
-                            if row == 0:           
-                                all_wba_ax[row][col].set_ylabel('L-R WBA (deg)')
-                                
-                                all_wba_ax[row][col].set_ylim(wba_lim)
-                                #wba_ax_ylim = all_wba_ax[row][col].get_ylim()
-                                all_wba_ax[row][col].set_yticks([wba_lim[0],0,wba_lim[1]])
-                                
-                                all_stim_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelbottom='off')
-                            elif row == n_rows-1:
-                                # label time x axis for just col 0 ______________________
-                                # divide by sampling rate _______________________________
-                                def div_sample_rate(x, pos): 
-                                    #The two args are the value and tick position 
-                                    return (x-s_iti)/sampling_rate
-                         
-                                formatter = FuncFormatter(div_sample_rate) 
-                                all_stim_ax[row][col].xaxis.set_major_formatter(formatter)
-                                         
-                                all_stim_ax[row][col].tick_params(labelbottom='on')
-                                all_stim_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].set_xlabel('Time from loom start (s)')
-                                all_wba_ax[row][col].tick_params(labelleft='off')
-                            else:
-                                all_wba_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelbottom='off')
-                        else: # remove all ylabels 
-                                all_wba_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelbottom='off')
-                        
-                  
-                    #now annotate stimulus positions, title ______________________________________      
-                    fig.text(.22,.905,'Left',fontsize=12)
-                    fig.text(.495,.905,'Center',fontsize=12)
-                    fig.text(.775,.905,'Right',fontsize=12)
-                    
-                    fig.text(.01,.87,'33d max disk',fontsize=12)
-                    fig.text(.01,.6,'50d max disk',fontsize=12)
-                    fig.text(.01,.33,'90d max disk',fontsize=12)
-            
-                    figure_txt = title_txt + '  '+l_div_v_txt[loom_speed]+'  '+contrast_txt[contrast]
-                    fig.text(.2,.95,figure_txt,fontsize=18) 
-            
-                    #fig.text(.05,.95,tr_info_str,fontsize=14) 
-                   
-                   
-                    plt.draw()
-            
-                    if if_save:
-                        saveas_path = '/Users/jamie/bin/figures/'
-                        if if_x_zoom:
-                            plt.savefig(saveas_path + figure_txt + '_looming_wba_zoomed.png',\
-                            bbox_inches='tight',dpi=100) 
-                        else:
-                            plt.savefig(saveas_path + figure_txt + '_looming_wba.png',\
-                                        bbox_inches='tight',dpi=100) 
-                        #plt.close('all')
-                        
-    def plot_wba_contrast_x_position(self,title_txt='',l_div_v_list=[0,1,2],max_size_list=[0,1],\
-                        wba_lim=[-60,60],if_save=True,if_x_zoom=True): 
+                    this_cnd_trs = all_fly_traces.loc[:,('this_fly',slice(None),cnd,'lmr')].columns.get_level_values(1).tolist()
+                    n_cnd_trs = np.size(this_cnd_trs)
         
-        # for each l/v stim parameter and min contrast 
-        # plot lmr wba for three rows of max disk size x 
-        # three columns of looming direction
-        
-        sampling_rate = 1000 # in hertz ********* move to fly info
-        s_iti = 2 * sampling_rate #********* move to fly info
-        
-        baseline_win = range(0,int(1*sampling_rate))  #**************** check this.
-                # time relative loom start - s_iti
-                # do not average out the visual onset
-        
-        
-        contrast_txt = ['3:7 contrast','4:7 contrast','5:7 contrast']
-        l_div_v_txt = ['22 l div v','44 l div v','88 l div v']
-        max_disk_txt = ['50 degrees', '90 degrees']
-        
-        tr_types_by_cnd = np.asarray([[0,18,36],[1,19,37],[2,20,38]]) 
-        
-        
-        # define saccade window relative loom max time
-        l_div_v_saccade_win = np.array([[-.25,.25],[-.75,.5],[-.5,.5]])*sampling_rate
-        l_div_v_saccade_win = l_div_v_saccade_win.astype(int)               
-                       
-        # define zoomed x axis range relative loom start - s_iti ------------- update this
-        l_div_v_zoom_win = np.array([[s_iti,s_iti+(1*sampling_rate)],  \
-                                     [s_iti,s_iti+(1.5*sampling_rate)], \
-                                     [s_iti,s_iti+(2.75*sampling_rate)]],dtype=int)
-        
-        #get all traces and detect saccades ______________________________________________
-        all_fly_traces, all_fly_saccades = self.get_traces_by_stim('this_fly',s_iti,get_saccades=True)
-                
-        n_rows = 3
-        n_cols = 3
-        
-        #now plot one figure for each looming speed ______________________________________
-        for loom_speed in l_div_v_list: 
-            for max_size in max_size_list: 
-                fig = plt.figure(figsize=(10.7875,7.925))       #(16.5, 9))
-                gs = gridspec.GridSpec(6,n_cols,height_ratios=[1,.15,1,.15,1,.15])
-                gs.update(wspace=0.025, hspace=0.05) # set the spacing between axes. 
-        
-                #store all subplots for formatting later           
-                all_wba_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
-                all_stim_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
-        
-                #************ update this -- make an ndarray for conds. include title txt
-                
-                cnds_to_plot = tr_types_by_cnd + 3*max_size + 6*loom_speed
-                print '______________________'
-          
+                    # create subplots ________________________________________________________              
+                    if row == 0 and col == 1:
+                        wba_ax  = plt.subplot(gs[0,col]) 
+                        stim_ax = plt.subplot(gs[1,col],sharex=wba_ax)    
+                    else:
+                        wba_ax  = plt.subplot(gs[0+2*row,col], sharex=all_wba_ax[0][1],  sharey=all_wba_ax[0][1]) 
+                        stim_ax = plt.subplot(gs[1+2*row,col], sharex=all_stim_ax[0][1], sharey=all_stim_ax[0][1])    
             
-                # get the index of the first max value of the looming ystim
-                # draw a window around here to look for saccades
+                    all_wba_ax[row][col] = wba_ax
+                    all_stim_ax[row][col] = stim_ax
             
-                loom_max_i = all_fly_traces.loc[:,('this_fly',slice(None),cnds_to_plot.flatten(),'ystim')].idxmax().median()
-            
-                # get saccade window. defined relative loom_max_i ________________________
-                l_saccade_win = int(loom_max_i + l_div_v_saccade_win[loom_speed][0])
-                r_saccade_win = int(loom_max_i + l_div_v_saccade_win[loom_speed][1])
-                this_turn_win = np.arange(l_saccade_win,r_saccade_win) 
-            
-                max_t = int(loom_max_i + 1*sampling_rate)
-            
-                # now loop through the conditions/columns ____________________________________
-           
-                for row in range(n_rows):
-                    for col in range(n_cols):
-                        cnd = cnds_to_plot[row][col]
-                        #print self.stim_types_labels[cnd]
-            
-                        this_cnd_trs = all_fly_traces.loc[:,('this_fly',slice(None),cnd,'lmr')].columns.get_level_values(1).tolist()
-                        n_cnd_trs = np.size(this_cnd_trs)
-                
-                        # get colormap info ______________________________________________________
-                        cmap = plt.cm.get_cmap('seismic') 
-                        cNorm  = colors.Normalize(0,n_cnd_trs)
-                        scalarMap = cm.ScalarMappable(norm=cNorm, cmap=cmap)
-            
-                        # create subplots ________________________________________________________              
-                        if row == 0 and col == 0:
-                            wba_ax  = plt.subplot(gs[0,col]) 
-                            stim_ax = plt.subplot(gs[1,col],sharex=wba_ax)    
-                        else:
-                            wba_ax  = plt.subplot(gs[0+2*row,col], sharex=all_wba_ax[0][0], sharey=all_wba_ax[0][0]) 
-                            stim_ax = plt.subplot(gs[1+2*row,col], sharex=all_wba_ax[0][0], sharey=all_stim_ax[0][0])    
-                    
-                        wba_ax.set_axis_bgcolor('grey')
-                        # stim_ax.set_axis_bgcolor('black')
-                    
-                        # for debugging
-                        #wba_ax.set_title(self.stim_types_labels[cnd])
-                        
-                        all_wba_ax[row][col] = wba_ax
-                        all_stim_ax[row][col] = stim_ax
-                    
-                        # loop single trials and plot all signals ________________________________
-                        for tr, i in zip(this_cnd_trs,range(n_cnd_trs)):
-                
-                            this_color = scalarMap.to_rgba(i)        
-                     
-                            # plot WBA signal ____________________________________________________           
-                            wba_trace = all_fly_traces.loc[:,('this_fly',tr,cnd,'lmr')]
-                    
-                            # get saccades in this trace
-                            saccade_is = ~np.isnan(all_fly_saccades.loc[:,('this_fly',tr,cnd)])
-                            tr_saccades = np.asarray(all_fly_saccades.loc[saccade_is,('this_fly',tr,cnd)],dtype=int)
-                    
-                            baseline = np.nanmean(wba_trace[baseline_win])
-                            wba_trace = wba_trace - baseline  
-                     
-                            non_nan_i = np.where(~np.isnan(wba_trace))[0]  ##remove nans earlier/check to make sure nans only occur at the end
-                            filtered_wba_trace = butter_lowpass_filter(wba_trace[non_nan_i],30)
-                        
-                            #filtered_wba_trace = butter_lowpass_filter(wba_trace,30)
-                            wba_ax.plot(filtered_wba_trace,color=this_color)
-
-                            # plot all saccade times
-                            #wba_ax.plot(tr_saccades,filtered_wba_trace[tr_saccades],marker='^', \
-                            #            markersize=8.5,linestyle='',color=this_color)
-                    
-                            #now plot stimulus traces ____________________________________________
-                            stim_ax.plot(all_fly_traces.loc[:,('this_fly',tr,cnd,'ystim')],color=this_color)
-                                  
-                                    
-                    #now format all subplots _____________________________________________________  
-           
-                    
-                    #loop though all columns again, format each row ______________________________
-                for row in range(n_rows):
-                    for col in range(n_cols):      
-                        #all_wba_ax[row][col].fill([l_saccade_win,r_saccade_win,r_saccade_win,l_saccade_win],
-                        #        [wba_lim[1],wba_lim[1],wba_lim[0],wba_lim[0]],'black',alpha=.1)
-                        
-                        # set the ylim for the stimulus and correlation rows ______________________
-                        all_stim_ax[row][col].set_ylim([0,10])
-                         
-                        # label axes, show xlim and ylim __________________________________________
-                 
-                        # remove all time xticklabels
-                        all_wba_ax[row][col].tick_params(labelbottom='off')
-                         
-                        if if_x_zoom:
-                            all_wba_ax[row][col].set_xlim(l_div_v_zoom_win[loom_speed])
-                        else:
-                            all_wba_ax[row][col].set_xlim([0,max_t])
-                 
-                        if col == 0: #label yaxes
-                            if row == 0:           
-                                all_wba_ax[row][col].set_ylabel('L-R WBA (deg)')
-                                
-                                
-                                all_wba_ax[row][col].set_ylim(wba_lim)
-                                #wba_ax_ylim = all_wba_ax[row][col].get_ylim()
-                                all_wba_ax[row][col].set_yticks([wba_lim[0],0,wba_lim[1]])
-                                
-                                
-                                all_stim_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelbottom='off')
-                            elif row == n_rows-1:
-                                # label time x axis for just col 0 ______________________
-                                # divide by sampling rate _______________________________
-                                def div_sample_rate(x, pos): 
-                                    #The two args are the value and tick position 
-                                    return (x-s_iti)/sampling_rate
-                         
-                                formatter = FuncFormatter(div_sample_rate) 
-                                all_stim_ax[row][col].xaxis.set_major_formatter(formatter)
-                                         
-                                all_stim_ax[row][col].tick_params(labelbottom='on')
-                                all_stim_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].set_xlabel('Time from loom start (s)')
-                                all_wba_ax[row][col].tick_params(labelleft='off')
-                            else:
-                                all_wba_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelbottom='off')
-                        else: # remove all ylabels 
-                                all_wba_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelleft='off')
-                                all_stim_ax[row][col].tick_params(labelbottom='off')
-                        
-                  
-                    #now annotate stimulus positions, title ______________________________________      
-                    fig.text(.22,.905,'Left',fontsize=12)
-                    fig.text(.495,.905,'Center',fontsize=12)
-                    fig.text(.775,.905,'Right',fontsize=12)
-                    
-                    fig.text(.01,.87,contrast_txt[0],fontsize=12)
-                    fig.text(.01,.6,contrast_txt[1],fontsize=12)
-                    fig.text(.01,.33,contrast_txt[2],fontsize=12)
-            
-                    figure_txt = title_txt + '  '+l_div_v_txt[loom_speed]+'  '+max_disk_txt[max_size] + ' max disk'
-                    fig.text(.2,.95,figure_txt,fontsize=18) 
-            
-                    #fig.text(.05,.95,tr_info_str,fontsize=14) 
-                   
-                   
-                    plt.draw()
-            
-                    if if_save:
-                        saveas_path = '/Users/jamie/bin/figures/'
-                        if if_x_zoom:
-                            plt.savefig(saveas_path + figure_txt + '_looming_wba_zoomed.png',bbox_inches='tight',dpi=100) 
-                        else:
-                            plt.savefig(saveas_path + figure_txt + '_looming_wba.png',\
-                                        bbox_inches='tight',dpi=100) 
-                        
+                    # loop single trials and plot all signals ________________________________
+                    for tr, i in zip(this_cnd_trs,range(n_cnd_trs)):
+        
+                        this_color = black  # update this later        
              
+                        # plot WBA signal ____________________________________________________           
+                        wba_trace = all_fly_traces.loc[:,('this_fly',tr,cnd,'lmr')]
+            
+                        baseline = np.nanmean(wba_trace[baseline_win])
+                        wba_trace = wba_trace - baseline  
+             
+                        wba_ax.plot(wba_trace[::10],color=this_color)
+                        wba_ax.axhline()
+                        
+                    
+                        #now plot stimulus traces ____________________________________________
+                        stim_ax.plot(all_fly_traces.loc[::10,('this_fly',tr,cnd,'xstim')],color=this_color)
+                          
+                            
+        # #now format all subplots _____________________________________________________  
+   
+        #loop though all columns again, format each row ______________________________
+        for row in range(n_rows):
+            for col in range(n_cols):      
+                
+                #exclude blank axes
+                cnd = cnds_to_plot[row][col]
+                if not np.isnan(cnd):
+             
+                    # remove all time xticklabels __________________________________
+                    all_wba_ax[row][col].tick_params(labelbottom='off')
+                    
+                    # label columns
+                    if row == 0 or ((row == 2) and ((col == 0) or (col == 5))): 
+                        all_wba_ax[row][col].set_title(self.stim_types_labels[int(cnd)][:3])
+                    
+                    if row == 0 and col == 1:           
+                        all_wba_ax[row][col].set_ylabel('L-R WBA (deg)')
+                    
+                        all_wba_ax[row][col].set_ylim(wba_lim)
+                        all_wba_ax[row][col].set_yticks([wba_lim[0],0,wba_lim[1]])
+                        
+                        
+                        all_stim_ax[row][col].tick_params(labelleft='off')
+                        all_stim_ax[row][col].tick_params(labelbottom='off')
+                    elif row == 2 and col == 0:
+                        # label time x axis for just col 0 ______________________
+                        # divide by sampling rate _______________________________
+                        def div_sample_rate(x, pos): 
+                            #The two args are the value and tick position 
+                            return (x-(s_iti/10))/(sampling_rate/10)
+             
+                        formatter = FuncFormatter(div_sample_rate) 
+                        
+                        all_wba_ax[row][col].set_xlim([0, 2.5*sampling_rate/10]) #enforce max time
+                        
+                        all_stim_ax[row][col].xaxis.set_major_formatter(formatter)
+                        
+                         
+                        all_stim_ax[row][col].tick_params(labelbottom='on')
+                        all_stim_ax[row][col].tick_params(labelleft='off')
+                        all_stim_ax[row][col].set_xlabel('Time from movement start (s)')
+                        all_wba_ax[row][col].tick_params(labelleft='off')
+                    else:
+                        all_wba_ax[row][col].tick_params(labelleft='off')
+                        all_stim_ax[row][col].tick_params(labelleft='off')
+                        all_stim_ax[row][col].tick_params(labelbottom='off')
+                
+                        all_wba_ax[row][col].tick_params(labelleft='off')
+                        all_stim_ax[row][col].tick_params(labelleft='off')
+                        all_stim_ax[row][col].tick_params(labelbottom='off')
+                
+          
+                #now annotate stimulus positions, title ______________________________________      
+                fig.text(.2,.95,'Left',fontsize=16)
+                fig.text(.8,.95,'Right',fontsize=16)
+            
+                fig.text(.065,.87,'Full field',fontsize=16)
+                fig.text(.065,.6,'Bar',fontsize=16)
+                fig.text(.065,.33,'Spot',fontsize=16)
+    
+                figure_txt = title_txt
+                fig.text(.45,.95,figure_txt,fontsize=18) 
+    
+                #fig.text(.05,.95,tr_info_str,fontsize=14) 
+           
+           
+                plt.draw()
+    
+                if if_save:
+                    saveas_path = '/Users/jamie/bin/figures/'
+                    plt.savefig(saveas_path + figure_txt + '_spot_array.png',\
+                                    bbox_inches='tight',dpi=100) 
+                        
+
+                                     
     def plot_each_tr_saccade(self,l_div_v_list=[0],
         wba_lim=[-45,45]): 
         #for each l/v stim parameter, 
@@ -853,7 +463,6 @@ class Visual_Feature_Flight(Flight):
                     plt.plot(all_fly_traces.loc[:,('this_fly',tr,cnd,'ystim')])
     
     
-                   
     def get_traces_by_stim(self,fly_name='this_fly',iti=25000,get_saccades=False):
     # here extract the traces for each of the stimulus times. 
     # align to looming start, and add the first pre stim and post stim intervals
@@ -875,14 +484,14 @@ class Visual_Feature_Flight(Flight):
             iterables = [[fly_name],
                          [tr],
                          [this_stim_type],
-                         ['lmr','lwa','rwa','ystim']]
+                         ['lmr','lwa','rwa','xstim']]
             column_labels = pd.MultiIndex.from_product(iterables,names=['fly','tr_i','tr_type','trace']) 
                                                             #is the unsorted tr_type level a problem?    
                    
             tr_traces = np.asarray([self.lmr[this_start:this_stop],
                                          self.lwa[this_start:this_stop],
                                          self.rwa[this_start:this_stop],
-                                         self.ystim[this_start:this_stop]]).transpose()  #reshape to avoid transposing
+                                         self.xstim[this_start:this_stop]]).transpose()  #reshape to avoid transposing
                                           
             tr_df = pd.DataFrame(tr_traces,columns=column_labels) #,index=time_points) 
             fly_df = pd.concat([fly_df,tr_df],axis=1)
@@ -904,10 +513,8 @@ class Visual_Feature_Flight(Flight):
                  tr_saccade_starts_df = pd.DataFrame(np.transpose(saccade_starts),columns=column_labels)            
                  fly_saccades_df = pd.concat([fly_saccades_df,tr_saccade_starts_df],axis=1)
             
-        if get_saccades:
-            return fly_df, fly_saccades_df 
-        else:  
-            return fly_df
+        return fly_df, fly_saccades_df 
+       
         
      
         
