@@ -182,18 +182,25 @@ class Visual_Feature_Flight(Flight):
         #self.pre_loom_stim_ons = np.delete(self.pre_loom_stim_ons,non_flight_trs)
                     
     def parse_trial_times(self, if_debug_fig=False):
-        #parse the ao signal to determine trial start and stop index values
-        #include checks for unusual starting aos, early trial ends, 
-        #long itis, etc
+        # parse the ao signal to determine trial start and stop index values
+        # include checks for unusual starting aos, early trial ends, 
+        # long itis, etc
         
         ao_diff = np.diff(self.ao)
         
-        tr_start = self.samples[np.where(ao_diff > 2)]
+        if self.protocol == 'eight_cnds':
+            ao_d_upper_bound = 4
+            ao_d_lower_bound = -4
+        else:
+            ao_d_upper_bound = 2.5
+            ao_d_lower_bound = -2.5
+        
+        tr_start = self.samples[np.where(ao_diff > ao_d_upper_bound)]
         start_diff = np.diff(tr_start)
         redundant_starts = tr_start[np.where(start_diff < 1000)]
         clean_tr_starts = np.setdiff1d(tr_start,redundant_starts)+1
         
-        tr_stop = self.samples[np.where(ao_diff < -2)]
+        tr_stop = self.samples[np.where(ao_diff < ao_d_lower_bound)]
         stop_diff = np.diff(tr_stop)
         redundant_stops = tr_stop[np.where(stop_diff < 1000)] 
         #now check that the y value is > -9 
@@ -220,8 +227,8 @@ class Visual_Feature_Flight(Flight):
             y_stop = np.ones(len(clean_tr_stops))
             plt.plot(clean_tr_starts,y_start*7,'go')
             plt.plot(clean_tr_stops,y_stop*7,'ro')
-            plt.plot(fly.xstim,color=black)
-            plt.plot(np.diff(fly.ao),color=magenta)
+            #plt.plot(self.xstim,color=black)
+            plt.plot(np.diff(self.ao),color=magenta)
         
         
         self.n_trs = n_trs 
@@ -234,20 +241,31 @@ class Visual_Feature_Flight(Flight):
     def parse_stim_type(self):
         #calculate the stimulus type
        
-        stim_types_labels =['2x2 full field left',      # 0
-                            '2x2 full field right',     # 1
-                            '2x2 spot left',            # 2
-                            '2x2 spot right',           # 3
-                            '2x2 bar left',             # 4
-                            '2x2 bar right',            # 5
-                            '2x4 full field left',      # 6
-                            '2x4 full field right',     # 7    
-                            '2x4 spot left',            # 8
-                            '2x4 spot right',           # 9
-                            '2x4 bar left',             # 10
-                            '2x4 bar right',            # 11
-                            '8x8 spot right, superfast',# 12
-                            '8x8 spot left, superfast'] # 13   
+       
+        if self.protocol == 'eight_cnds':
+            stim_types_labels =['2x4 full field left',      # 0
+                                '2x4 full field right',     # 1    
+                                '2x4 spot left',            # 2
+                                '2x4 spot right',           # 3
+                                '2x4 bar left',             # 4
+                                '2x4 bar right',            # 5
+                                '8x8 spot right, superfast',# 6
+                                '8x8 spot left, superfast'] # 7  
+        else:
+            stim_types_labels =['2x2 full field left',      # 0
+                                '2x2 full field right',     # 1
+                                '2x2 spot left',            # 2
+                                '2x2 spot right',           # 3
+                                '2x2 bar left',             # 4
+                                '2x2 bar right',            # 5
+                                '2x4 full field left',      # 6
+                                '2x4 full field right',     # 7    
+                                '2x4 spot left',            # 8
+                                '2x4 spot right',           # 9
+                                '2x4 bar left',             # 10
+                                '2x4 bar right',            # 11
+                                '8x8 spot right, superfast',# 12
+                                '8x8 spot left, superfast'] # 13   
         
         stim_types = -1*np.ones(self.n_trs,'int')
         
@@ -257,9 +275,9 @@ class Visual_Feature_Flight(Flight):
         for tr in range(self.n_trs): 
             this_start = self.tr_starts[tr]
             this_stop = self.tr_stops[tr]
-            tr_ao_codes[tr] = round(np.mean(self.ao[(this_start+20):(this_stop-20)]),1)   
+            tr_ao_codes[tr] = round(np.mean(self.ao[(this_start+30):(this_stop-30)]),1)   
         unique_tr_ao_codes = np.unique(tr_ao_codes) 
-        #print 'n stim types = ' + str(np.size(unique_tr_ao_codes))
+        print 'n stim types = ' + str(np.size(unique_tr_ao_codes))
         
         for tr in range(self.n_trs): 
             tr_ao_code = tr_ao_codes[tr]         
@@ -301,7 +319,8 @@ class Visual_Feature_Flight(Flight):
             for col in range(n_cols):
                 cnd = cnds_to_plot[row][col]
                 
-                if not np.isnan(cnd):
+                if not np.isnan(cnd):  # I think I can replace this with a continue statement.
+                    
                     # if non nan, convert cnd to int
                     cnd = int(cnd)
                 
@@ -414,6 +433,154 @@ class Visual_Feature_Flight(Flight):
                                     bbox_inches='tight',dpi=100) 
                         
 
+
+    def plot_wba_by_cnd_8cnds(self,title_txt='',wba_lim=[-30,30],if_save=True): 
+        
+        sampling_rate = 1000            # in hertz ********* move to fly info
+        s_iti = .5 * sampling_rate      # ********* move to fly info
+        
+        baseline_win = range(0,int(1*sampling_rate)) 
+        
+        #get all traces and detect saccades ______________________________________________
+        all_fly_traces, all_fly_saccades = self.get_traces_by_stim('this_fly',s_iti,get_saccades=False)
+                
+        n_rows = 3
+        n_cols = 4 # changed from 6
+        
+        fig = plt.figure(figsize=(17.5,9))       #(16.5, 9))
+        gs = gridspec.GridSpec(6,n_cols,height_ratios=[1,.3,1,.3,1,.3])
+        gs.update(wspace=0.1, hspace=0.1) # set the spacing between axes. 
+        
+        #store all subplots for formatting later           
+        all_wba_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
+        all_stim_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
+        
+        #set order of stimuli to plot
+        cnds_to_plot = np.asarray([[np.nan,1,0,np.nan],[np.nan,4,5,np.nan],[7,2,3,6]])
+    
+        # now loop through the conditions/columns ____________________________________
+        for row in range(n_rows):
+            for col in range(n_cols):
+                cnd = cnds_to_plot[row][col]
+                
+                if np.isnan(cnd):  
+                    continue
+                    
+                # if non nan, convert cnd to int
+                cnd = int(cnd)
+            
+                this_cnd_trs = all_fly_traces.loc[:,('this_fly',slice(None),cnd,'lmr')].columns.get_level_values(1).tolist()
+                n_cnd_trs = np.size(this_cnd_trs)
+    
+                # create subplots ________________________________________________________              
+                if row == 0 and col == 1:
+                    wba_ax  = plt.subplot(gs[0,col]) 
+                    stim_ax = plt.subplot(gs[1,col],sharex=wba_ax)    
+                else:
+                    wba_ax  = plt.subplot(gs[0+2*row,col], sharex=all_wba_ax[0][1],  sharey=all_wba_ax[0][1]) 
+                    stim_ax = plt.subplot(gs[1+2*row,col], sharex=all_stim_ax[0][1], sharey=all_stim_ax[0][1])    
+        
+                all_wba_ax[row][col] = wba_ax
+                all_stim_ax[row][col] = stim_ax
+        
+                # loop single trials and plot all signals ________________________________
+                for tr, i in zip(this_cnd_trs,range(n_cnd_trs)):
+    
+                    this_color = black  # update this later        
+         
+                    # plot WBA signal ____________________________________________________           
+                    wba_trace = all_fly_traces.loc[:,('this_fly',tr,cnd,'lmr')]
+        
+                    baseline = np.nanmean(wba_trace[baseline_win])
+                    wba_trace = wba_trace - baseline  
+         
+                    wba_ax.plot(wba_trace[::10],color=this_color)
+                    wba_ax.axhline()
+                    
+                
+                    #now plot stimulus traces ____________________________________________
+                    stim_ax.plot(all_fly_traces.loc[::10,('this_fly',tr,cnd,'xstim')],color=this_color)
+                    
+                    # also plot ao levels as a sanity check
+                    stim_ax.plot(all_fly_traces.loc[::10,('this_fly',tr,cnd,'ao')],color=blue)
+                            
+        # #now format all subplots _____________________________________________________  
+   
+        #loop though all columns again, format each row ______________________________
+        for row in range(n_rows):
+            for col in range(n_cols):      
+                
+                #exclude blank axes
+                cnd = cnds_to_plot[row][col]
+                
+                if np.isnan(cnd):  
+                    continue
+                
+                # remove all time xticklabels __________________________________
+                all_wba_ax[row][col].tick_params(labelbottom='off')
+                
+                # label columns
+                if row == 0 or ((row == 2) and ((col == 0) or (col == 5))): 
+                    all_wba_ax[row][col].set_title(self.stim_types_labels[int(cnd)][:3])
+                
+                if row == 0 and col == 1:           
+                    all_wba_ax[row][col].set_ylabel('L-R WBA (deg)')
+                
+                    all_wba_ax[row][col].set_ylim(wba_lim)
+                    all_wba_ax[row][col].set_yticks([wba_lim[0],0,wba_lim[1]])
+                    
+                    
+                    all_stim_ax[row][col].tick_params(labelleft='off')
+                    all_stim_ax[row][col].tick_params(labelbottom='off')
+                elif row == 2 and col == 0:
+                    # label time x axis for just col 0 ______________________
+                    # divide by sampling rate _______________________________
+                    def div_sample_rate(x, pos): 
+                        #The two args are the value and tick position 
+                        return (x-(s_iti/10))/(sampling_rate/10)
+         
+                    formatter = FuncFormatter(div_sample_rate) 
+                    
+                    all_wba_ax[row][col].set_xlim([0, 1.25*sampling_rate/10]) #enforce max time
+                    
+                    all_stim_ax[row][col].xaxis.set_major_formatter(formatter)
+                    
+                     
+                    all_stim_ax[row][col].tick_params(labelbottom='on')
+                    all_stim_ax[row][col].tick_params(labelleft='off')
+                    all_stim_ax[row][col].set_xlabel('Time from movement start (s)')
+                    all_wba_ax[row][col].tick_params(labelleft='off')
+                else:
+                    all_wba_ax[row][col].tick_params(labelleft='off')
+                    all_stim_ax[row][col].tick_params(labelleft='off')
+                    all_stim_ax[row][col].tick_params(labelbottom='off')
+            
+                    all_wba_ax[row][col].tick_params(labelleft='off')
+                    all_stim_ax[row][col].tick_params(labelleft='off')
+                    all_stim_ax[row][col].tick_params(labelbottom='off')
+                
+          
+                #now annotate stimulus positions, title ______________________________________      
+                fig.text(.1,.95,'Left visual field, moving left',fontsize=16)
+                fig.text(.75,.95,'Right visual field, moving right',fontsize=16)
+            
+                fig.text(.065,.87,'Full field',fontsize=16)
+                fig.text(.065,.6,'Bar',fontsize=16)
+                fig.text(.065,.33,'Spot',fontsize=16)
+    
+                figure_txt = title_txt
+                fig.text(.35,.95,figure_txt,fontsize=18) 
+    
+                #fig.text(.05,.95,tr_info_str,fontsize=14) 
+           
+           
+                plt.draw()
+    
+                if if_save:
+                    saveas_path = '/Users/jamie/bin/figures/'
+                    plt.savefig(saveas_path + figure_txt + '_feature_behavior_search.png',\
+                                    bbox_inches='tight',dpi=100) 
+
                                      
     def plot_each_tr_saccade(self,l_div_v_list=[0],
         wba_lim=[-45,45]): 
@@ -484,11 +651,12 @@ class Visual_Feature_Flight(Flight):
             iterables = [[fly_name],
                          [tr],
                          [this_stim_type],
-                         ['lmr','lwa','rwa','xstim']]
+                         ['ao','lmr','lwa','rwa','xstim']]
             column_labels = pd.MultiIndex.from_product(iterables,names=['fly','tr_i','tr_type','trace']) 
                                                             #is the unsorted tr_type level a problem?    
                    
-            tr_traces = np.asarray([self.lmr[this_start:this_stop],
+            tr_traces = np.asarray([self.ao[this_start:this_stop],
+                                         self.lmr[this_start:this_stop],
                                          self.lwa[this_start:this_stop],
                                          self.rwa[this_start:this_stop],
                                          self.xstim[this_start:this_stop]]).transpose()  #reshape to avoid transposing
