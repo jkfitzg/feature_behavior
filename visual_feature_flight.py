@@ -312,49 +312,50 @@ class Visual_Feature_Flight(Flight):
         all_stim_ax = np.empty([n_rows,n_cols],dtype=plt.Axes)
         
         #set order of stimuli to plot
-        cnds_to_plot = np.asarray([[np.nan,0,6,1,7,np.nan],[np.nan,4,10,5,11,np.nan],[13,2,8,3,9,12]])
+        cnds_to_plot = np.asarray([[np.nan,7,1,0,6,np.nan],[np.nan,10,4,5,11,np.nan],[13,8,2,3,9,12]])
     
         # now loop through the conditions/columns ____________________________________
         for row in range(n_rows):
             for col in range(n_cols):
                 cnd = cnds_to_plot[row][col]
                 
-                if not np.isnan(cnd):  # I think I can replace this with a continue statement.
-                    
-                    # if non nan, convert cnd to int
-                    cnd = int(cnd)
-                
-                    this_cnd_trs = all_fly_traces.loc[:,('this_fly',slice(None),cnd,'lmr')].columns.get_level_values(1).tolist()
-                    n_cnd_trs = np.size(this_cnd_trs)
-        
-                    # create subplots ________________________________________________________              
-                    if row == 0 and col == 1:
-                        wba_ax  = plt.subplot(gs[0,col]) 
-                        stim_ax = plt.subplot(gs[1,col],sharex=wba_ax)    
-                    else:
-                        wba_ax  = plt.subplot(gs[0+2*row,col], sharex=all_wba_ax[0][1],  sharey=all_wba_ax[0][1]) 
-                        stim_ax = plt.subplot(gs[1+2*row,col], sharex=all_stim_ax[0][1], sharey=all_stim_ax[0][1])    
-            
-                    all_wba_ax[row][col] = wba_ax
-                    all_stim_ax[row][col] = stim_ax
-            
-                    # loop single trials and plot all signals ________________________________
-                    for tr, i in zip(this_cnd_trs,range(n_cnd_trs)):
-        
-                        this_color = black  # update this later        
-             
-                        # plot WBA signal ____________________________________________________           
-                        wba_trace = all_fly_traces.loc[:,('this_fly',tr,cnd,'lmr')]
-            
-                        baseline = np.nanmean(wba_trace[baseline_win])
-                        wba_trace = wba_trace - baseline  
-             
-                        wba_ax.plot(wba_trace[::10],color=this_color)
-                        wba_ax.axhline()
+                if np.isnan(cnd):  
+                    continue
                         
+                # if non nan, convert cnd to int
+                cnd = int(cnd)
+            
+                this_cnd_trs = all_fly_traces.loc[:,('this_fly',slice(None),cnd,'lmr')].columns.get_level_values(1).tolist()
+                n_cnd_trs = np.size(this_cnd_trs)
+    
+                # create subplots ________________________________________________________              
+                if row == 0 and col == 1:
+                    wba_ax  = plt.subplot(gs[0,col]) 
+                    stim_ax = plt.subplot(gs[1,col],sharex=wba_ax)    
+                else:
+                    wba_ax  = plt.subplot(gs[0+2*row,col], sharex=all_wba_ax[0][1],  sharey=all_wba_ax[0][1]) 
+                    stim_ax = plt.subplot(gs[1+2*row,col], sharex=all_stim_ax[0][1], sharey=all_stim_ax[0][1])    
+        
+                all_wba_ax[row][col] = wba_ax
+                all_stim_ax[row][col] = stim_ax
+        
+                # loop single trials and plot all signals ________________________________
+                for tr, i in zip(this_cnd_trs,range(n_cnd_trs)):
+    
+                    this_color = black  # update this later        
                     
-                        #now plot stimulus traces ____________________________________________
-                        stim_ax.plot(all_fly_traces.loc[::10,('this_fly',tr,cnd,'xstim')],color=this_color)
+                    # plot WBA signal ____________________________________________________           
+                    wba_trace = all_fly_traces.loc[:,('this_fly',tr,cnd,'lmr')]
+        
+                    baseline = np.nanmean(wba_trace[baseline_win])
+                    wba_trace = wba_trace - baseline  
+         
+                    wba_ax.plot(wba_trace[::10],color=this_color)
+                    wba_ax.axhline()
+                    
+                
+                    #now plot stimulus traces ____________________________________________
+                    stim_ax.plot(all_fly_traces.loc[::10,('this_fly',tr,cnd,'xstim')],color=this_color)
                           
                             
         # #now format all subplots _____________________________________________________  
